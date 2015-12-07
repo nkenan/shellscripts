@@ -1,79 +1,105 @@
 #!/bin/bash
 # To boot permanently either to console or gui on Linux (GNU/Linux)
-# by using shell. That's the goal of this tool.
+# by using shell. That's the sense of my existence.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Only tested with Lubuntu (Ubuntu 15.10 ); Part 2 does not
-# work at the moment because of missing files. See comments for further details.
+# Only tested with Lubuntu (Ubuntu 15.10 )
+# Run me with sudo. See the comments for my steps. Feel free to
+# pull requests for me on github (https://github.com/NazimKenan/smallShelly).
+# Still to do: 1. /etc/default/grub gets bigger by time because of "cat >>".
+# 2. Making functions out of my steps in order to make more flexible and
+# give me arguments on shell directly.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Clearing terminal and basic variables
 clear
-myName="qweConsole" # not really nice
-myAge="0.1" # still a baby
-myHome="github.com"
-echo "$myName $myAge ($myHome)" 
-echo "Please do not use this software if you do not know what it does exactly.
-This program can damage your operating system and data."
-echo ""
+myName="$0" #My name is changeable
+myAge="0.1" #I am still a baby
+mySettings="$(pwd)/.config" #The place for my settings
+myBackups="$(pwd)/.backup" #The place for my backups of grub
+backupAlreadyMade="$myBackups/$(hostname)" #problem: copying script-directory to another server with exactly the same user. then never backup will be made.
+myHome="https://github.com/NazimKenan/smallShelly" #You can visit me.
+
+# Disclaimer to warn people about danger. 
+echo "$myName ($myAge): $myHome" 
+echo "Please do not use this tool if you do not exactly
+know what it does. It could damage your operating system
+and could set your data into an unreachable state.
+There is no warranty for such issues. For further
+information please visit $myHome"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo "Do you want to run this program anyway?"
-read -p "Type yes to continue or press CTRL + C to cancel $myName: " RUNPROGRAM
+read -p "Type yes to continue or press CTRL + C to cancel: " RUNPROGRAM
 if [ "$RUNPROGRAM" != "yes" ] # to add "Yes" and "YES" and "yEs" and "yES" and so on :)
 	then
 	exit 0
 fi
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
 # Backup of grub
 echo "Checking for former backups on this machine..."
-if [ -f /etc/default/.$myNameBackupMade ]
+if [ -f $backupAlreadyMade ]
 then
-echo "Found backup."
-listOfBackupFiles=$(sudo cat /etc/default/.$myNameBackupMade)
-    echo "Listing existing backup files:"
-    echo "$listOfBackupFiles"
-    echo "End of list."
+	echo "Found backup."
+	echo "Listing existing backup files:"
+	listOfBackupFiles=$(sudo cat $backupAlreadyMade) #sudo?
+	echo "$listOfBackupFiles"
+	echo "End of list."
 else
  	echo "There is no backup of grub on this machine."
- 	echo "Backup will be made now..."
- 	filename=grub-backup-$(date +"%Y-%m-%d-%H:%M")-$(hostname)
- 	cp /etc/default/grub $(pwd)/.backup/$filename
- 	ls -a $(pwd)/.backup/ | grep grub-backup >> /etc/default/.$myNameBackupMade
- 	echo "Done. Backup of /etc/default/grub to $(pwd)/.backup/$filename made."
+ 	echo "Backup will be created now..."
+ 	# giving backup file date and hostname for filename to make it more stable when
+ 	# this tool is copied with its own mother directory to another device
+ 	filename=grubBackup-$(date +"%Y-%m-%d-%H:%M")-$(hostname)
+ 	cp /etc/default/grub $myBackups/$filename
+ 	# copying default-grub as grubConsole and grubGui for the first run
+ 	cp $myBackups/$filename $mySettings/grubConsole
+ 	cp $myBackups/$filename $mySettings/grubGui
+ 	# now adding parameters to grub-file for console
+ 	echo "GRUB_CMDLINE_LINUX_DEFAULT=""" >> $mySettings/grubConsole
+ 	echo "GRUB_CMDLINE_LINUX="text"" >> $mySettings/grubConsole
+ 	echo "GRUB_TERMINAL=console". >> $mySettings/grubConsole
+ 	# now adding parameters to grub-file for gui
+ 	echo "GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"" >> $mySettings/grubGui
+ 	echo "GRUB_CMDLINE_LINUX=""" >> $mySettings/grubGui
+ 	echo "GRUB_TERMINAL=""" >> $mySettings/grubGui
+ 	# setting file to prevent backups from modified default-grub as default-grub
+ 	sudo ls -a $myBackups | grep grubBackup >> $backupAlreadyMade
+ 	echo "Done. Backup of /etc/default/grub to $myBackups created.
+Settings for console and gui mode are saved in $mySettings"
 fi
-# FIRST STEP: in which mode (either console or gui) is system right now?
-# if it is in console, then /etc/default/grub (people usually call it default-grub)
-# will be saved to /etc/default/$myNameGrubForConsole or if it is gui default-grub
-# will be saved to /etc/default/$myNameGrubForGui
-echo "In which state is the system right now?"
-read -p "Type "1" for console or "2" for gui: " RIGHTNOW
-if [ "$RIGHTNOW" == "1" ] #if console
-	then
- 	sudo cp /etc/default/grub /etc/default/$myNameGrubForConsole ;
- 	echo "Backup of /etc/default/grub to /etc/default/$myNameGrubForConsole" ;
-elif [ "$RIGHTNOW" == "2" ] #if gui
- 	then
- 	sudo cp /etc/default/grub /etc/default/$myNameGrubForGui ;
- 	echo "Backup of /etc/default/grub to /etc/default/$myNameGrubForGui" ;
-fi
-# END OF FIRST STEP
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-# SECOND STEP [BUGGY!] : does not work because /etc/default/$myNameGrubForConsole
-# and ./$myNameGrubForGui do not exist at first run
+# Now asking in which state from now on will be boot. Copying
+# grubConsole or grubGui and renaming to /etc/default/grub and
+# updating groub and setting default for systemctl either as
+# multi-user-target (console) or graphical.target (gui).
 echo "To which state would you like to boot from now on?"
-read -p "Type "1" for console or "2" for gui: " FUTURE
-if [ "$FUTURE" == "1" ] #if console
+read -p "Type "console" or "gui" (without "): " bootTo
+if [ "$bootTo" == "console" ]
 	then
-	sudo cp /etc/default/$myNameGrubForConsole /etc/default/grub #does /etc/default/$myNameGrubForConsole exist?
+	sudo cp $mySettings/grubConsole /etc/default/grub
  	sudo update-grub
  	sudo systemctl set-default multi-user.target
  	echo "System will boot to console from now on."
-elif [ "$FUTURE" == "2" ] #if gui
+ 	sleep 2
+ 	clear && echo "Starting reboot..."
+	sleep 2
+	sudo shutdown -r now
+elif [ "$bootTo" == "gui" ] #if gui
 	then
- 	sudo cp /etc/default/$myNameGrubForGui /etc/default/grub #does /etc/default/$myNameGrubForGui exist?# 	sudo update-grub
- 	sudo systemctl set-default graphical.targe
+ 	sudo cp $mySettings/grubGui /etc/default/grub
+ 	sudo update-grub
+ 	sudo systemctl set-default graphical.target
  	echo "System will boot to gui from now on."
+ 	sleep 2
+ 	clear && echo "Starting reboot..."
+	sleep 2
+	sudo shutdown -r now
+ else
+ 	echo "Wrong input. Please consider not to use this tool
+ if you do not exactly know what it works like."
+ 	exit 0
 fi
-# END OF SECOND STEP
-# Rebooting
-clear
-echo "Starting reboot..."
-sleep 2
-sudo shutdown -r now
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
 exit 0
-# Clean uninstallaton should also delete /etc/default/$myNameGrubForConsole /etc/default/$myNameGrubForGui
