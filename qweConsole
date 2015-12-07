@@ -1,0 +1,79 @@
+#!/bin/bash
+# To boot permanently either to console or gui on Linux (GNU/Linux)
+# by using shell. That's the goal of this tool.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Only tested with Lubuntu (Ubuntu 15.10 ); Part 2 does not
+# work at the moment because of missing files. See comments for further details.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+clear
+myName="qweConsole" # not really nice
+myAge="0.1" # still a baby
+myHome="github.com"
+echo "$myName $myAge ($myHome)" 
+echo "Please do not use this software if you do not know what it does exactly.
+This program can damage your operating system and data."
+echo ""
+echo "Do you want to run this program anyway?"
+read -p "Type yes to continue or press CTRL + C to cancel $myName: " RUNPROGRAM
+if [ "$RUNPROGRAM" != "yes" ] # to add "Yes" and "YES" and "yEs" and "yES" and so on :)
+	then
+	exit 0
+fi
+# Backup of grub
+echo "Checking for former backups on this machine..."
+if [ -f /etc/default/.$myNameBackupMade ]
+then
+echo "Found backup."
+listOfBackupFiles=$(sudo cat /etc/default/.$myNameBackupMade)
+    echo "Listing existing backup files:"
+    echo "$listOfBackupFiles"
+    echo "End of list."
+else
+ 	echo "There is no backup of grub on this machine."
+ 	echo "Backup will be made now..."
+ 	filename=grub-backup-$(date +"%Y-%m-%d-%H:%M")-$(hostname)
+ 	cp /etc/default/grub $(pwd)/.backup/$filename
+ 	ls -a $(pwd)/.backup/ | grep grub-backup >> /etc/default/.$myNameBackupMade
+ 	echo "Done. Backup of /etc/default/grub to $(pwd)/.backup/$filename made."
+fi
+# FIRST STEP: in which mode (either console or gui) is system right now?
+# if it is in console, then /etc/default/grub (people usually call it default-grub)
+# will be saved to /etc/default/$myNameGrubForConsole or if it is gui default-grub
+# will be saved to /etc/default/$myNameGrubForGui
+echo "In which state is the system right now?"
+read -p "Type "1" for console or "2" for gui: " RIGHTNOW
+if [ "$RIGHTNOW" == "1" ] #if console
+	then
+ 	sudo cp /etc/default/grub /etc/default/$myNameGrubForConsole ;
+ 	echo "Backup of /etc/default/grub to /etc/default/$myNameGrubForConsole" ;
+elif [ "$RIGHTNOW" == "2" ] #if gui
+ 	then
+ 	sudo cp /etc/default/grub /etc/default/$myNameGrubForGui ;
+ 	echo "Backup of /etc/default/grub to /etc/default/$myNameGrubForGui" ;
+fi
+# END OF FIRST STEP
+
+# SECOND STEP [BUGGY!] : does not work because /etc/default/$myNameGrubForConsole
+# and ./$myNameGrubForGui do not exist at first run
+echo "To which state would you like to boot from now on?"
+read -p "Type "1" for console or "2" for gui: " FUTURE
+if [ "$FUTURE" == "1" ] #if console
+	then
+	sudo cp /etc/default/$myNameGrubForConsole /etc/default/grub #does /etc/default/$myNameGrubForConsole exist?
+ 	sudo update-grub
+ 	sudo systemctl set-default multi-user.target
+ 	echo "System will boot to console from now on."
+elif [ "$FUTURE" == "2" ] #if gui
+	then
+ 	sudo cp /etc/default/$myNameGrubForGui /etc/default/grub #does /etc/default/$myNameGrubForGui exist?# 	sudo update-grub
+ 	sudo systemctl set-default graphical.targe
+ 	echo "System will boot to gui from now on."
+fi
+# END OF SECOND STEP
+# Rebooting
+clear
+echo "Starting reboot..."
+sleep 2
+sudo shutdown -r now
+exit 0
+# Clean uninstallaton should also delete /etc/default/$myNameGrubForConsole /etc/default/$myNameGrubForGui
