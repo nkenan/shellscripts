@@ -60,5 +60,5 @@ echo "********************************"
 echo "Target path:	$targetPath"
 echo "Local path:	$localPath"
 echo "Mounted."
-echo "$myName (&myAge) - Visit $myHome for further information."
+echo "$myName ($myAge) - Visit $myHome for further information."
 exit 0
