@@ -1,6 +1,7 @@
 #!/bin/bash
 myName="433UtilsEtherwakeInstaller"
 myHome="http://www.github.com/NazimKenan/"
+myIntention="To install and configure 433Utils, wiringPi, etherwake and give root-permissions to www-data"
 ###########################################################################################
 ###########################################################################################
 function package_exists() {
@@ -49,6 +50,8 @@ function give_root() {
 }
 ###########################################################################################
 ###########################################################################################
+echo $myIntention
+#update and uprade your Raspbian with apt-get
 updateUpgrade
 #create ~/bin if not existing and changing to it
 create_Dir ~/bin && cd ~/bin/
@@ -60,5 +63,6 @@ install_433utils
 give_root www-data
 #install etherwake
 package_install etherwake
+#end
 echo "Please report bugs or request features on $myHome."
 exit 0
