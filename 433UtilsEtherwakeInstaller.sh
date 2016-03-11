@@ -23,7 +23,7 @@ function updateUpgrade() {
 		echo "Continuing without 'sudo apt-get update && apt-get -y upgrade'..."
 	fi
 }
-function install_433utils() {
+function install_wiringPi433utils() {
 	git clone git://git.drogon.net/wiringPi
 	git clone git://github.com/ninjablocks/433Utils.git
 	sudo wiringPi/build
@@ -58,7 +58,7 @@ create_Dir ~/bin && cd ~/bin/
 #install git
 package_install git
 #download and compile packages
-install_433utils
+install_wiringPi433utils
 #give 'www-data' root-rights
 give_root www-data
 #install etherwake
