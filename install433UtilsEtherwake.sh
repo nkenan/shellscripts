@@ -17,7 +17,7 @@ fi
 }
 function updateUpgrade() {
 	read -p "Do you want to update and upgrade by apt-get? Type yes: " yes
-	if [ $yes = 'yes' ] ; then
+	if [[ $yes = 'yes' ]] ; then
 		sudo apt-get update && sudo apt-get -y upgrade
 	else
 		echo "Continuing without 'sudo apt-get update && apt-get -y upgrade'..."
