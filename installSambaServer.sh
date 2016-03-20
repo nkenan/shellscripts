@@ -20,6 +20,7 @@ function create_share() {
 	read -p "Type path of directory to share: " path
 	read -p "Type name of share: " name
 	sudo /bin/su -c "cat << EOF >> /etc/samba/smb.conf
+	echo "Please check owenership of "$path". Maybe you must chown it."
 [$name]
 path = $path
 writeable = yes
