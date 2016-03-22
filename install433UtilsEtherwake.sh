@@ -27,7 +27,7 @@ function install_wiringPi433utils() {
 	git clone git://git.drogon.net/wiringPi
 	git clone git://github.com/ninjablocks/433Utils.git
 	sudo wiringPi/build
-	sudo 433Kit/RPi_utils/make
+	sudo 433Utils/RPi_utils/make
 }
 function create_Dir() {
 if ! [ -d $1 ] ; then
