@@ -1,14 +1,13 @@
 #!/bin/bash
 ### DESCRIPTION: Capturing images or videos from webcam and sending them to a webserver
 ### To do: video capturing, implenting motion or other tools; to be tested with other os than raspbian
-### please report bugs to http://github.com/NazimKenan/shellscripts/cam2web.sh
+### please report bugs to http://github.com/NazimKenan/shellscripts/pygo2web.sh
 
-myName="cam2web"
+myName="pygo2web"
 myVersion="0.1a"
-myHome="http://github.com/NazimKenan/shellscripts/cam2web.sh"
-localPath="/home/pi/bin/$myName" #please provide explicit path
-
-#reading config file or creating one
+myIntention="Capturing images or videos from webcam and sending them to a webserver"
+myHome="http://github.com/NazimKenan/shellscripts/pygo2web.sh"
+myLocalPath="/home/pi/bin/$myName" #please provide explicit path to this sh-file's directory <-- very important!
 
 ################################################################################################
 ################################ FUNCTIONS #####################################################
@@ -16,42 +15,41 @@ localPath="/home/pi/bin/$myName" #please provide explicit path
 
 #reading configuration file
 function get_config() {
-	if [[ ! -f $localPath/$myName.config ]] ; then
+	if [[ ! -f $myLocalPath/$myName.config ]] ; then
 		echo "Creating random configuration..."
-		cat<<EOF> $myName.config
+cat << EOF > $myLocalPath/$myName.config
 #!/bin/bash
-# Description: configuration file for cam2web.sh - delete this file and cam2web will generate
+# Description: configuration file for pygo2web.sh - delete this file and pygo2web will generate
 # new configuration file with next run
 
-# where to stream to - on localhost or different server? Besides that backup place to choose! In both cases
-# "0" for no , "1" for yes - please consider your device running out of storage if you do not clean your hd regulary
-server=1
-localhost=1
-
-localhostBackup=1
-serverBackup=0
-
-#server credentials - if streams are sent to another webserver
-serverAddress="your.server.com"
-serverPath="/var/www/html/cam2web"
-serverUser="yourUsername"
+#server credentials - use when streams are sent to another webserver - never leave on unsecured devices - can lead to security issues
+server="1" #switch to publish on different server - 1 for publishing, 0 for not publishing
+serverAddress="yourServer.com" # try uberspace.de if you're from Germany/Austria or Switzerland
+serverDirectory="/var/www/html/$myName" # change to your Document Root
+serverUser="yourUserName"
 serverPassword="yourPassword"
+serverBackup=0 #shall backups be made on server? 1 for yes, 0 for no
+serverBackupDir=""
 
-#own webserver credentials - if streams are published on localhost webserver
-localhostDirectory="/var/www/html/cam2web"
+
+#own webserver credentials - use when streams are published on localhost webserver - never leave on unsecured devices - can lead to security issues
+localhost="1" #switch to publish on localhost - 1 for publishing, 0 for not publishing
+localhostDirectory="/var/www/html/$myName"
+localhostBackup=1 #shall backups be made on localhost? 1 for yes, 0 for no
+localhostBackupDir="$myLocalPath/backup"
 
 #characteristics of captures to make and webpage to create
 filename="image.jpeg"
 format="jpeg"
-resolution="640x480"
-loopDelayForCamera="5" #seconds to wait before starting next capture-loop
+resolution="1280x720" #depends on your camera; higher resolution may lead to performance issues
+loopDelayForCamera="1" #seconds to wait before starting next capture-loop
 webpageFile="index.html"
-
 EOF
+
 else
 	echo "Existing configuration found."
 fi
-	source $localPath/$myName.config
+	source $myLocalPath/$myName.config
 }
 
 #checking whether tools are installed and installs them
@@ -78,33 +76,33 @@ else
 fi
 }
 
+function create_dir() {
+		if [ ! -d $1 ] ; then
+			mkdir $1
+		fi
+}
+
 #upload function
 function upload_this() {
 	if [[ $server == "1" ]] ; then
-		echo "server is set to 1" #debug 
-		scp $1 $serverUser@$serverAddress:$serverPath/$(basename $1) &
+		# still to do: creating directory if non-existing
+		scp $1 $serverUser@$serverAddress:$serverDirectory/$(basename $1) &
 	fi
 	if [[ $localhost == "1" ]] ; then
-		echo "localhost is set to 1" #debug
-		cp $1 $localhostDirectory
+		create_dir $localhostDirectory
+		cp $1 $localhostDirectory/$(basename $1) &
 	fi
 }
 
 #to create backups on localhost or different server
 function backup_this() {
 	if [[ $localhostBackup == "1" ]] ; then 
-		echo "localhostBackup is set to 1" #debug 
-		if [ ! -d $localPath/backup ] ; then
-			echo "localhostBackup/backup does not exist" #debug 
-			mkdir $localPath/backup
-			echo "Created new directory for backup on localhost"
-		else
-		 echo "Found existing directory for backup on localhost"
-		fi
-		cp $1 $localPath/backup/$(date +"%Y-%m-%d-%H:%M:%S")-$(basename $1)
+		create_dir $localhostBackupDir
+		cp $1 $localhostBackupDir/$(date +"%Y-%m-%d-%H:%M:%S")-$(basename $1)
 	fi
 	if [[ $serverBackup == "1" ]] ; then 
-		echo "Server backup does not work right now."
+		# still to do: creating directory if non-existing
+		echo "Server backup does not work yet. Please support: $myHome"
 	fi
 }
 
@@ -113,9 +111,9 @@ function stream_this() {
 	#loop: creating and uploading pictures
 	while true
 	do
-		streamer -f $format -o $localPath/$filename -s $resolution
-		upload_this $localPath/$filename
-		backup_this $localPath/$filename
+		streamer -f $format -o $myLocalPath/$filename -s $resolution
+		upload_this $myLocalPath/$filename
+		backup_this $myLocalPath/$filename
 		if [[ $loopDelayForCamera != 0 ]] ; then
 			echo "Waiting $loopDelayForCamera seconds for next capture."
 			sleep $loopDelayForCamera
@@ -125,14 +123,14 @@ function stream_this() {
 
 #to create a lean webpage
 function create_webpage() {
-cat<<EOF> $1
+cat<<EOF > $1
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset=utf-8>
 <meta name=viewport content=width=device-width,initial-scale=1>
 <link rel=stylesheet href=https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css integrity=sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7 crossorigin=anonymous>
-<title>$myName</title>
+<title>$myName &#8226; $myIntention</title>
 <style>
 body { margin:5px;
 font-family: Verdana; }
@@ -146,7 +144,7 @@ font-family: Verdana; }
 	</content>
 	<footer>
 	<div class="row">
-	<div class="col-xs-12">started last: $(date +"%d.%m.%Y@%H:%M:%S") &#183; $myName $myVersion &#183; <a href="$myHome" target="_blank">github</a></div>
+	<div class="col-xs-12"><a href="$myHome" target="_blank">$myName</a> $myVersion &#8226; started last: $(date +"%d.%m.%Y@%H:%M:%S") &#8226; <a href="http://wikipedia.org/wiki/Pygoscelis" target="_blank">Pygoscelis?</a></div>
 	</div>
 	</footer>
 </div>
@@ -175,7 +173,7 @@ EOF
 #start of script
 get_config
 package_install streamer #only if needed
-create_webpage $localPath/$webpageFile && upload_this $localPath/$webpageFile #once at startup of script
+create_webpage $myLocalPath/$webpageFile && upload_this $myLocalPath/$webpageFile #once at startup of script
 stream_this #looping
 
 #end of script
